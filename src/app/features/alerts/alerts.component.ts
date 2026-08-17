@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AlertsService } from '../../core/services/api.services';
@@ -23,22 +23,27 @@ import { AuthService } from '../../core/auth/auth.service';
     </div>
     <section class="panel">
       <div class="filter-row">
-        <select aria-label="Filtrar estado">
-          <option>Todos los estados</option>
-          <option>Sin responsable</option>
-          <option>Pendiente de valoración</option>
-          <option>En valoración</option>
-          <option>Resuelta</option>
+        <select
+          aria-label="Filtrar estado"
+          [value]="statusFilter()"
+          (change)="setStatusFilter($event)"
+        >
+          <option value="TODOS">Todos los estados</option>
+          <option value="SIN_RESPONSABLE">Sin responsable</option>
+          <option value="PENDIENTE_VALORACION">Pendiente de valoración</option>
+          <option value="EN_VALORACION">En valoración</option>
+          <option value="RESUELTA">Resuelta</option>
         </select>
       </div>
       @if (loading()) {
         <div class="state-card">Cargando alertas…</div>
       } @else if (error()) {
         <div class="state-card error">{{ error() }}</div>
-      } @else if (!items().length) {
+      } @else if (!visibleItems().length) {
         <div class="state-card">
           <div class="state-icon">✓</div>
-          <h2>No hay alertas en esta bandeja</h2>
+          <h2>No hay alertas con este estado</h2>
+          <p>Selecciona otro estado para consultar la bandeja.</p>
         </div>
       } @else {
         <div class="table-wrap">
@@ -54,7 +59,7 @@ import { AuthService } from '../../core/auth/auth.service';
               </tr>
             </thead>
             <tbody>
-              @for (a of items(); track a.id) {
+              @for (a of visibleItems(); track a.id) {
                 <tr>
                   <td>
                     <b>#{{ a.id.slice(0, 8) }}</b>
@@ -100,11 +105,21 @@ export class AlertsComponent {
   loading = signal(true);
   error = signal('');
   working = signal('');
+  statusFilter = signal<'TODOS' | Alert['estado']>('TODOS');
+  visibleItems = computed(() =>
+    this.statusFilter() === 'TODOS'
+      ? this.items()
+      : this.items().filter((alert) => alert.estado === this.statusFilter()),
+  );
   constructor() {
     this.load();
   }
   load() {
-    this.api.list().subscribe({
+    this.loading.set(true);
+    this.error.set('');
+    const filters: Record<string, string> =
+      this.statusFilter() === 'TODOS' ? {} : { estado: this.statusFilter() };
+    this.api.list(filters).subscribe({
       next: (r) => {
         this.items.set(r.alerts);
         this.loading.set(false);
@@ -114,6 +129,10 @@ export class AlertsComponent {
         this.loading.set(false);
       },
     });
+  }
+  setStatusFilter(event: Event) {
+    this.statusFilter.set((event.target as HTMLSelectElement).value as 'TODOS' | Alert['estado']);
+    this.load();
   }
   label(s: string) {
     return (
