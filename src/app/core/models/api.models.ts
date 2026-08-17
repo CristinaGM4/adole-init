@@ -52,6 +52,10 @@ export interface Alert {
 export interface Application {
   id: string;
   institucionId: string;
+  edadAlAplicar?: number;
+  versionInstrumento?: 'IPBAM-20-1.0' | 'IPBIM-C20-1.0';
+  tipoInstrumento?: 'ADOLESCENTE' | 'INFANTIL_CUIDADOR';
+  modoPiloto?: boolean;
   estado: 'RECIBIDA_COMPLETA' | 'RECIBIDA_INCOMPLETA';
   fechaEnvio: string;
   adolescente: Adolescent;
@@ -61,6 +65,12 @@ export interface Application {
     sintomasPuntaje?: number;
     sintomasBanda?: string;
   };
+  resultadoInfantil?: {
+    perfilOperativo: string | null;
+    seguridadEstado: string;
+    safetyAlert: boolean;
+    versionAlgoritmo?: string;
+  } | null;
   alerta?: Alert | null;
   institucion?: Institution;
   caso?: Case;
@@ -297,6 +307,63 @@ export interface SafetyAssessmentInput {
   adultoProtector: boolean;
   condicionesSeguridad: string;
   observaciones?: string | null;
+}
+export interface DashboardMetadata {
+  generadoAt: string;
+  desde: string | null;
+  hasta: string | null;
+  agrupacion?: 'dia' | 'semana' | 'mes';
+  institucionId: string | null;
+  nominal: false;
+}
+export interface DashboardDistribution {
+  categoria: string;
+  total: number;
+}
+export interface PopulationDashboardResponse {
+  metadata: DashboardMetadata;
+  resumen: {
+    adolescentesEvaluados: number;
+    aplicaciones: number;
+    institucionesParticipantes: number;
+    formulariosCompletos: number;
+    formulariosIncompletos: number;
+  };
+  distribucionEdad: DashboardDistribution[];
+  distribucionInstitucion: DashboardDistribution[];
+  distribucionPerfil: DashboardDistribution[];
+  distribucionDominios: Record<string, DashboardDistribution[]>;
+  evolucionTemporal: { periodo: string; total: number }[];
+  resultadosPorInstrumento: {
+    ADOLESCENTE: { aplicaciones: number; perfiles: DashboardDistribution[] };
+    INFANTIL_CUIDADOR: {
+      aplicaciones: number;
+      perfiles: DashboardDistribution[];
+      dominios: Record<string, DashboardDistribution[]>;
+    };
+  };
+}
+export interface SecurityDashboardResponse {
+  metadata: DashboardMetadata;
+  alertasDelDia: number;
+  alertasPendientes: number;
+  alertasSinResponsable: number;
+  alertasConResponsable: number;
+  valoracionesCompletadas: number;
+  situacionesUrgentes: number;
+  transferenciasPendientes: number;
+  transferenciasConfirmadas: number;
+  alertasVencidas: number;
+}
+export interface RoutesDashboardResponse {
+  metadata: DashboardMetadata;
+  rutasAbiertas: number;
+  rutasEnSeguimiento: number;
+  remisionesRealizadas: number;
+  remisionesConfirmadas: number;
+  casosVencidos: number;
+  casosSinContactoConfirmado: number;
+  casosCerrados: number;
 }
 export type DashboardResponse = {
   metadata: {

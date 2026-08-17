@@ -9,7 +9,9 @@ import {
   AdolescentHistory,
   Case,
   CaseStatus,
-  DashboardResponse,
+  PopulationDashboardResponse,
+  RoutesDashboardResponse,
+  SecurityDashboardResponse,
   ConsentRecord,
   EscalationReport,
   DirectoryEntry,
@@ -236,8 +238,18 @@ export class ProtectionRoutesService extends Api {
 }
 @Injectable({ providedIn: 'root' })
 export class DashboardService extends Api {
-  get(kind: 'poblacional' | 'seguridad' | 'rutas', filters: Record<string, string> = {}) {
-    return this.http.get<DashboardResponse>(`${this.url}/dashboard/${kind}`, {
+  population(filters: Record<string, string> = {}) {
+    return this.http.get<PopulationDashboardResponse>(`${this.url}/dashboard/poblacional`, {
+      params: new HttpParams({ fromObject: filters }),
+    });
+  }
+  security(filters: Record<string, string> = {}) {
+    return this.http.get<SecurityDashboardResponse>(`${this.url}/dashboard/seguridad`, {
+      params: new HttpParams({ fromObject: filters }),
+    });
+  }
+  routes(filters: Record<string, string> = {}) {
+    return this.http.get<RoutesDashboardResponse>(`${this.url}/dashboard/rutas`, {
       params: new HttpParams({ fromObject: filters }),
     });
   }

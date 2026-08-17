@@ -69,6 +69,7 @@ Paleta verde institucional, fondo claro, sidebar sobrio, tarjetas y tablas con p
 6. El contrato no incluye eliminación de usuarios, instituciones o servicios; no se simuló borrado.
 7. La integración de Microsoft Forms requiere `FORMS_INTEGRATION_API_KEY`; deliberadamente no se incluyó en Angular porque es un secreto exclusivo de integraciones servidor a servidor.
 8. El contrato sociodemográfico incorporado en el commit backend `1867f3d` exige `personaInformante` con valores exclusivamente de cuidador, incluso para el flujo adolescente autoadministrado; no incluye `ADOLESCENTE`. El frontend presenta exactamente las opciones contractuales. Conviene que backend confirme si debe ampliar ese enum para representar correctamente al adolescente que responde.
+9. La especificación IPBIM-C20 indica en CP-I01 que una aplicación compatible con perfil 1 y P5=1 debe conservar `BIENESTAR_PRESERVADO` y añadir una alerta activa. El motor `IPBIM-RULES-1.0` exige `!safety.requiresReview` para perfil 1 y, con idénticos dominios más P5=1, devuelve `RECURSOS_MODERADOS` + alerta. Esto no afecta la creación de la alerta, pero sí modifica el perfil por la señal de seguridad y contradice la regla de independencia perfil/alerta del documento. Debe corregirse en backend; el frontend no recalcula ni reemplaza su resultado.
 
 ## Conexión
 
