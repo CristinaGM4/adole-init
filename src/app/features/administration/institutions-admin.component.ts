@@ -39,8 +39,15 @@ import { Institution } from '../../core/models/api.models';
       @if (loading()) {
         <div class="state-card">Cargando instituciones…</div>
       } @else {
-        @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
-        @if (items().length === 0 && !error()) { <div class="state-card"><h2>No hay instituciones registradas</h2><p>Crea la primera institución para habilitar el formulario IPBAM-20.</p></div> }
+        @if (error()) {
+          <div class="error" role="alert">{{ error() }}</div>
+        }
+        @if (items().length === 0 && !error()) {
+          <div class="state-card">
+            <h2>No hay instituciones registradas</h2>
+            <p>Crea la primera institución para habilitar los formularios de bienestar.</p>
+          </div>
+        }
         <div class="table-wrap">
           <table>
             <thead>
@@ -102,7 +109,10 @@ export class InstitutionsAdminComponent {
         this.items.set(r.institutions);
         this.loading.set(false);
       },
-      error: () => { this.loading.set(false); this.error.set('No fue posible cargar las instituciones.'); },
+      error: () => {
+        this.loading.set(false);
+        this.error.set('No fue posible cargar las instituciones.');
+      },
     });
   }
   create() {
@@ -122,11 +132,9 @@ export class InstitutionsAdminComponent {
     });
   }
   toggle(i: Institution) {
-    this.api
-      .update(i.id, { activa: !i.activa })
-      .subscribe({
-        next: () => this.load(),
-        error: (e) => this.error.set(e.error?.error?.message || 'No fue posible actualizar.'),
-      });
+    this.api.update(i.id, { activa: !i.activa }).subscribe({
+      next: () => this.load(),
+      error: (e) => this.error.set(e.error?.error?.message || 'No fue posible actualizar.'),
+    });
   }
 }

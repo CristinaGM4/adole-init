@@ -1,3 +1,261 @@
-import{Component,inject,signal}from'@angular/core';import{ReactiveFormsModule,FormBuilder,Validators}from'@angular/forms';import{UsersService,InstitutionsService}from'../../core/services/api.services';import{Institution,Role,User}from'../../core/models/api.models';import{HttpErrorResponse}from'@angular/common/http';
-@Component({standalone:true,imports:[ReactiveFormsModule],template:`<div class="page-head"><div><span class="eyebrow">ADMINISTRACIÓN</span><h1>Usuarios</h1><p>Cuentas, roles y alcance institucional.</p></div><button class="primary" (click)="showForm.set(!showForm())">＋ Crear usuario</button></div>@if(showForm()){<section class="panel form-panel"><h2>Nuevo usuario</h2><form [formGroup]="form" (ngSubmit)="create()"><div class="form-grid"><label>Nombre<input formControlName="nombre"></label><label>Correo<input type="email" formControlName="email"></label><label>Contraseña temporal<input type="password" formControlName="password" aria-describedby="password-help"><small id="password-help">Mínimo 12 caracteres.</small></label><label>Rol<select formControlName="rol">@for(r of roles;track r){<option [value]="r">{{labelRole(r)}}</option>}</select></label><label>Institución<select formControlName="institucionId"><option value="">Sin institución</option>@for(i of institutions();track i.id){<option [value]="i.id">{{i.nombre}}</option>}</select></label></div>@if(message()){<div [class]="messageClass()" role="status">{{message()}}</div>}<div class="form-actions"><button type="button" class="secondary" (click)="showForm.set(false)">Cancelar</button><button class="primary" [disabled]="form.invalid||saving()">{{saving()?'Guardando…':'Crear usuario'}}</button></div></form></section>}<section class="panel">@if(loading()){<div class="state-card">Cargando usuarios…</div>}@else if(error()){<div class="state-card error">{{error()}}</div>}@else{<div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Institución</th><th>Estado</th><th>Acción</th></tr></thead><tbody>@for(u of users();track u.id){<tr><td><b>{{u.nombre}}</b></td><td>{{u.email}}</td><td>{{labelRole(u.rol)}}</td><td>{{institutionName(u.institucionId)}}</td><td><span [class]="u.activo?'badge success':'badge'">{{u.activo?'Activo':'Inactivo'}}</span></td><td><button class="small secondary" (click)="toggle(u)">{{u.activo?'Desactivar':'Activar'}}</button></td></tr>}</tbody></table></div>}</section>`})
-export class UsersAdminComponent{private api=inject(UsersService);private institutionsApi=inject(InstitutionsService);private fb=inject(FormBuilder);roles:Role[]=['ADMIN','SECRETARIA_SALUD','RESPONSABLE_INSTITUCIONAL','PROFESIONAL_SEGURIDAD'];users=signal<User[]>([]);institutions=signal<Institution[]>([]);loading=signal(true);error=signal('');message=signal('');messageClass=signal('notice success');showForm=signal(false);saving=signal(false);form=this.fb.nonNullable.group({nombre:['',[Validators.required,Validators.minLength(2)]],email:['',[Validators.required,Validators.email]],password:['',[Validators.required,Validators.minLength(12)]],rol:['RESPONSABLE_INSTITUCIONAL' as Role,Validators.required],institucionId:['']});constructor(){this.load();this.institutionsApi.list().subscribe({next:r=>this.institutions.set(r.institutions)})}load(){this.api.list().subscribe({next:r=>{this.users.set(r.users);this.loading.set(false)},error:()=>{this.error.set('No fue posible cargar los usuarios.');this.loading.set(false)}})}create(){if(this.form.invalid)return;this.saving.set(true);const v=this.form.getRawValue();this.api.create({...v,institucionId:v.institucionId||null}).subscribe({next:()=>{this.saving.set(false);this.showForm.set(false);this.form.reset({nombre:'',email:'',password:'',rol:'RESPONSABLE_INSTITUCIONAL',institucionId:''});this.load()},error:e=>this.fail(e)})}toggle(u:User){this.api.update(u.id,{activo:!u.activo}).subscribe({next:()=>this.load(),error:e=>this.fail(e)})}fail(e:HttpErrorResponse){this.saving.set(false);this.messageClass.set('error');this.message.set(e.error?.error?.message||'No fue posible completar la operación.')}labelRole(r:Role){return r.replaceAll('_',' ')}institutionName(id:string|null){return this.institutions().find(i=>i.id===id)?.nombre||'Alcance general'}}
+import { Component, inject, signal } from '@angular/core';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { UsersService, InstitutionsService } from '../../core/services/api.services';
+import { Institution, Role, User } from '../../core/models/api.models';
+import { HttpErrorResponse } from '@angular/common/http';
+import { AuthService } from '../../core/auth/auth.service';
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  template: `<div class="page-head">
+      <div>
+        <span class="eyebrow">ADMINISTRACIÓN</span>
+        <h1>Usuarios</h1>
+        <p>Cuentas, roles y alcance institucional.</p>
+      </div>
+      <button class="primary" (click)="showForm.set(!showForm())">＋ Crear usuario</button>
+    </div>
+    @if (showForm()) {
+      <section class="panel form-panel">
+        <h2>Nuevo usuario</h2>
+        <form [formGroup]="form" (ngSubmit)="create()">
+          <div class="form-grid">
+            <label>Nombre<input formControlName="nombre" /></label
+            ><label>Correo<input type="email" formControlName="email" /></label
+            ><label
+              >Contraseña temporal<input
+                type="password"
+                formControlName="password"
+                aria-describedby="password-help"
+              /><small id="password-help">Mínimo 12 caracteres.</small></label
+            ><label
+              >Rol<select formControlName="rol">
+                @for (r of roles; track r) {
+                  <option [value]="r">{{ labelRole(r) }}</option>
+                }
+              </select></label
+            ><label
+              >Institución<select formControlName="institucionId">
+                <option value="">Sin institución</option>
+                @for (i of institutions(); track i.id) {
+                  <option [value]="i.id">{{ i.nombre }}</option>
+                }
+              </select></label
+            >
+          </div>
+          @if (message()) {
+            <div [class]="messageClass()" role="status">{{ message() }}</div>
+          }
+          <div class="form-actions">
+            <button type="button" class="secondary" (click)="showForm.set(false)">Cancelar</button
+            ><button class="primary" [disabled]="form.invalid || saving()">
+              {{ saving() ? 'Guardando…' : 'Crear usuario' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+    @if (resetUser(); as selected) {
+      <section class="panel form-panel">
+        <h2>Restablecer contraseña</h2>
+        <p>
+          Cambiarás la contraseña de <b>{{ selected.nombre }}</b> ({{ selected.email }}).
+        </p>
+        <form [formGroup]="passwordForm" (ngSubmit)="resetPassword()">
+          <div class="form-grid">
+            <label
+              >Nueva contraseña<input
+                type="password"
+                formControlName="password"
+                autocomplete="new-password"
+                aria-describedby="new-password-help"
+              /><small id="new-password-help">Mínimo 12 caracteres.</small></label
+            >
+            <label
+              >Confirmar contraseña<input
+                type="password"
+                formControlName="confirmation"
+                autocomplete="new-password"
+            /></label>
+          </div>
+          @if (passwordMismatch()) {
+            <div class="error" role="alert">Las contraseñas no coinciden.</div>
+          }
+          @if (message()) {
+            <div [class]="messageClass()" role="status">{{ message() }}</div>
+          }
+          <div class="form-actions">
+            <button type="button" class="secondary" (click)="closePasswordReset()">Cancelar</button
+            ><button
+              class="primary"
+              [disabled]="passwordForm.invalid || passwordMismatch() || saving()"
+            >
+              {{ saving() ? 'Guardando…' : 'Guardar nueva contraseña' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+    <section class="panel">
+      @if (loading()) {
+        <div class="state-card">Cargando usuarios…</div>
+      } @else if (error()) {
+        <div class="state-card error">{{ error() }}</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Institución</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of users(); track u.id) {
+                <tr>
+                  <td>
+                    <b>{{ u.nombre }}</b>
+                  </td>
+                  <td>{{ u.email }}</td>
+                  <td>{{ labelRole(u.rol) }}</td>
+                  <td>{{ institutionName(u.institucionId) }}</td>
+                  <td>
+                    <span [class]="u.activo ? 'badge success' : 'badge'">{{
+                      u.activo ? 'Activo' : 'Inactivo'
+                    }}</span>
+                  </td>
+                  <td>
+                    @if (canManageUser(u)) {
+                      <button class="small secondary" (click)="openPasswordReset(u)">
+                        Cambiar contraseña
+                      </button>
+                      <button class="small secondary" (click)="toggle(u)">
+                        {{ u.activo ? 'Desactivar' : 'Activar' }}
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>`,
+})
+export class UsersAdminComponent {
+  private api = inject(UsersService);
+  private institutionsApi = inject(InstitutionsService);
+  private fb = inject(FormBuilder);
+  private auth = inject(AuthService);
+  roles: Role[] = this.auth.hasRole(['ADMIN'])
+    ? ['ADMIN', 'SECRETARIA_EDUCACION']
+    : ['SECRETARIA_EDUCACION'];
+  users = signal<User[]>([]);
+  institutions = signal<Institution[]>([]);
+  loading = signal(true);
+  error = signal('');
+  message = signal('');
+  messageClass = signal('notice success');
+  showForm = signal(false);
+  resetUser = signal<User | null>(null);
+  saving = signal(false);
+  form = this.fb.nonNullable.group({
+    nombre: ['', [Validators.required, Validators.minLength(2)]],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(12)]],
+    rol: ['SECRETARIA_EDUCACION' as Role, Validators.required],
+    institucionId: [''],
+  });
+  passwordForm = this.fb.nonNullable.group({
+    password: ['', [Validators.required, Validators.minLength(12)]],
+    confirmation: ['', [Validators.required, Validators.minLength(12)]],
+  });
+  constructor() {
+    this.load();
+    this.institutionsApi.list().subscribe({ next: (r) => this.institutions.set(r.institutions) });
+  }
+  load() {
+    this.api.list().subscribe({
+      next: (r) => {
+        this.users.set(r.users);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('No fue posible cargar los usuarios.');
+        this.loading.set(false);
+      },
+    });
+  }
+  create() {
+    if (this.form.invalid) return;
+    this.saving.set(true);
+    const v = this.form.getRawValue();
+    this.api.create({ ...v, institucionId: v.institucionId || null }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.showForm.set(false);
+        this.form.reset({
+          nombre: '',
+          email: '',
+          password: '',
+          rol: 'SECRETARIA_EDUCACION',
+          institucionId: '',
+        });
+        this.load();
+      },
+      error: (e) => this.fail(e),
+    });
+  }
+  toggle(u: User) {
+    this.api
+      .update(u.id, { activo: !u.activo })
+      .subscribe({ next: () => this.load(), error: (e) => this.fail(e) });
+  }
+  openPasswordReset(user: User) {
+    this.message.set('');
+    this.showForm.set(false);
+    this.passwordForm.reset();
+    this.resetUser.set(user);
+  }
+  closePasswordReset() {
+    this.resetUser.set(null);
+    this.passwordForm.reset();
+    this.message.set('');
+  }
+  passwordMismatch() {
+    const value = this.passwordForm.getRawValue();
+    return !!value.confirmation && value.password !== value.confirmation;
+  }
+  resetPassword() {
+    const user = this.resetUser();
+    if (!user || this.passwordForm.invalid || this.passwordMismatch()) return;
+    this.saving.set(true);
+    this.api.update(user.id, { password: this.passwordForm.controls.password.value }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.messageClass.set('notice success');
+        this.message.set('Contraseña actualizada correctamente. Ya puede iniciar sesión.');
+        this.passwordForm.reset();
+      },
+      error: (e) => this.fail(e),
+    });
+  }
+  canManageUser(user: User) {
+    return user.rol !== 'ADMIN' || this.auth.hasRole(['ADMIN']);
+  }
+  fail(e: HttpErrorResponse) {
+    this.saving.set(false);
+    this.messageClass.set('error');
+    this.message.set(e.error?.error?.message || 'No fue posible completar la operación.');
+  }
+  labelRole(r: Role) {
+    return r.replaceAll('_', ' ');
+  }
+  institutionName(id: string | null) {
+    return this.institutions().find((i) => i.id === id)?.nombre || 'Alcance general';
+  }
+}

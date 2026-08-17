@@ -28,7 +28,7 @@ En desarrollo, Angular usa `/api` con `proxy.conf.json` para conectarse al backe
 ```ts
 export const environment = {
   production: false,
-  apiUrl: '/api'
+  apiUrl: '/api',
 };
 ```
 

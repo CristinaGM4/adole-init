@@ -1077,6 +1077,21 @@ td small {
   padding: 1rem 1.2rem;
   margin: 1.5rem 0;
 }
+.consent-versions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+.consent-versions span {
+  background: #e9f4f1;
+  color: #276b60;
+  border-radius: 999px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
 .consent-summary p {
   font-size: 0.96rem;
   line-height: 1.6;
@@ -1139,4 +1154,104 @@ td small {
 .declined-screen > div {
   background: #e7f1ef;
   color: #54736e;
+}
+.audience-selector {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 22px 0 28px;
+}
+.instrument-label {
+  display: inline-flex;
+  margin: 4px 0 8px !important;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #eaf6f3;
+  color: #126e61 !important;
+  font-size: 0.82rem !important;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.context-card {
+  max-width: 1120px !important;
+}
+.context-section {
+  margin: 26px 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fbfdfd;
+}
+.context-section > h2 {
+  margin: 0 0 6px;
+}
+.context-section > p {
+  margin-top: 0 !important;
+}
+.multi-field {
+  margin: 20px 0 0;
+  padding: 18px;
+  border: 1px solid #d5e3e0;
+  border-radius: 16px;
+}
+.multi-field legend {
+  padding: 0 8px;
+  font-weight: 800;
+}
+.multi-field .check-grid {
+  margin-top: 4px;
+}
+.multi-field label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px;
+  border-radius: 10px;
+}
+.multi-field input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+@media (max-width: 640px) {
+  .context-section {
+    padding: 17px;
+  }
+  .context-card .q-actions {
+    align-items: stretch;
+  }
+  .context-card .q-actions button {
+    width: 100%;
+  }
+}
+.audience-selector button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+.audience-selector button.selected {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(39, 139, 125, 0.15);
+  background: #f4fbf9;
+}
+.audience-selector b {
+  font-size: 1.05rem;
+}
+.audience-selector small {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+@media (max-width: 640px) {
+  .audience-selector {
+    grid-template-columns: 1fr;
+  }
 }

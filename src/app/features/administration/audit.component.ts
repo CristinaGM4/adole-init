@@ -1,2 +1,85 @@
-import{Component,inject,signal}from'@angular/core';import{DatePipe}from'@angular/common';import{AuditService}from'../../core/services/api.services';import{AuditEntry}from'../../core/models/api.models';
-@Component({standalone:true,imports:[DatePipe],template:`<div class="page-head"><div><span class="eyebrow">TRAZABILIDAD</span><h1>Auditoría</h1><p>Registro de acciones sensibles sin exponer contenido clínico.</p></div></div><section class="panel"><div class="filter-row"><input #action placeholder="Acción" aria-label="Filtrar por acción"><input #entity placeholder="Entidad" aria-label="Filtrar por entidad"><button class="secondary" (click)="load(action.value,entity.value)">Aplicar filtros</button></div>@if(loading()){<div class="state-card">Cargando auditoría…</div>}@else if(error()){<div class="state-card error">{{error()}}</div>}@else{<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Rol</th><th>Acción</th><th>Entidad</th><th>Identificador</th></tr></thead><tbody>@for(a of items();track a.id){<tr><td>{{a.createdAt|date:'dd MMM yyyy, HH:mm:ss'}}</td><td>{{a.usuario.nombre}}</td><td>{{a.usuario.rol.replaceAll('_',' ')}}</td><td><b>{{a.accion}}</b></td><td>{{a.entidad}}</td><td>#{{a.entidadId.slice(0,8)}}</td></tr>}</tbody></table></div>}</section>`})export class AuditComponent{private api=inject(AuditService);items=signal<AuditEntry[]>([]);loading=signal(true);error=signal('');constructor(){this.load()}load(action='',entity=''){this.loading.set(true);const filters:Record<string,string>={limite:'50'};if(action)filters['accion']=action;if(entity)filters['entidad']=entity;this.api.list(filters).subscribe({next:r=>{this.items.set(r.audit);this.loading.set(false)},error:()=>{this.error.set('No fue posible consultar la auditoría.');this.loading.set(false)}})}}
+import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { AuditService } from '../../core/services/api.services';
+import { AuditEntry } from '../../core/models/api.models';
+@Component({
+  standalone: true,
+  imports: [DatePipe],
+  template: `<div class="page-head">
+      <div>
+        <span class="eyebrow">TRAZABILIDAD</span>
+        <h1>Auditoría</h1>
+        <p>Registro de acciones sensibles sin exponer contenido clínico.</p>
+      </div>
+    </div>
+    <section class="panel">
+      <div class="filter-row">
+        <input #action placeholder="Acción" aria-label="Filtrar por acción" /><input
+          #entity
+          placeholder="Entidad"
+          aria-label="Filtrar por entidad"
+        /><button class="secondary" (click)="load(action.value, entity.value)">
+          Aplicar filtros
+        </button>
+      </div>
+      @if (loading()) {
+        <div class="state-card">Cargando auditoría…</div>
+      } @else if (error()) {
+        <div class="state-card error">{{ error() }}</div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Acción</th>
+                <th>Entidad</th>
+                <th>Identificador</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of items(); track a.id) {
+                <tr>
+                  <td>{{ a.createdAt | date: 'dd MMM yyyy, HH:mm:ss' }}</td>
+                  <td>{{ a.usuario.nombre }}</td>
+                  <td>{{ a.usuario.rol.replaceAll('_', ' ') }}</td>
+                  <td>
+                    <b>{{ a.accion }}</b>
+                  </td>
+                  <td>{{ a.entidad }}</td>
+                  <td>#{{ a.entidadId.slice(0, 8) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>`,
+})
+export class AuditComponent {
+  private api = inject(AuditService);
+  items = signal<AuditEntry[]>([]);
+  loading = signal(true);
+  error = signal('');
+  constructor() {
+    this.load();
+  }
+  load(action = '', entity = '') {
+    this.loading.set(true);
+    const filters: Record<string, string> = { limite: '50' };
+    if (action) filters['accion'] = action;
+    if (entity) filters['entidad'] = entity;
+    this.api.list(filters).subscribe({
+      next: (r) => {
+        this.items.set(r.audit);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('No fue posible consultar la auditoría.');
+        this.loading.set(false);
+      },
+    });
+  }
+}

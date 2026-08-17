@@ -19,20 +19,21 @@ import { AuthService } from '../../core/auth/auth.service';
         ×
       </button>
       <a class="logo" routerLink="/dashboard"
-        ><b>M</b><span>Bienestar<br /><small>Adolescente</small></span></a
+        ><b>M</b><span>Bienestar<br /><small>Infantil y Adolescente</small></span></a
       >
       <nav>
         <p>MONITOREO</p>
         <a routerLink="/dashboard" routerLinkActive="active">⌂ <span>Inicio</span></a>
-        @if (auth.hasRole(['ADMIN', 'SECRETARIA_SALUD', 'RESPONSABLE_INSTITUCIONAL'])) {
+        @if (auth.hasRole(['ADMIN', 'SECRETARIA_EDUCACION'])) {
           <a routerLink="/aplicaciones" routerLinkActive="active">▤ <span>Aplicaciones</span></a>
         }
         <a routerLink="/alertas" routerLinkActive="active">◈ <span>Alertas y casos</span></a
         ><a routerLink="/casos" routerLinkActive="active">□ <span>Casos</span></a
         ><a routerLink="/seguimientos" routerLinkActive="active">◷ <span>Seguimientos</span></a>
+        <a routerLink="/notificaciones" routerLinkActive="active">◇ <span>Notificaciones</span></a>
         <p>RECURSOS</p>
         <a routerLink="/directorio" routerLinkActive="active">⌘ <span>Directorio</span></a>
-        @if (auth.hasRole(['ADMIN'])) {
+        @if (auth.hasRole(['ADMIN', 'SECRETARIA_EDUCACION'])) {
           <a routerLink="/administracion" routerLinkActive="active"
             >⚙ <span>Administración</span></a
           >
@@ -52,7 +53,7 @@ import { AuthService } from '../../core/auth/auth.service';
           ☰
         </button>
         <div>
-          <strong>Monitoreo de bienestar adolescente</strong
+          <strong>Monitoreo de bienestar infantil y adolescente</strong
           ><small>{{ auth.user()?.institucion?.nombre || 'Alcance institucional' }}</small>
         </div>
         <div class="user">

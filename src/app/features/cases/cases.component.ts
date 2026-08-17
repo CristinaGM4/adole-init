@@ -1,2 +1,90 @@
-import{Component,inject,signal}from'@angular/core';import{DatePipe}from'@angular/common';import{RouterLink}from'@angular/router';import{CasesService}from'../../core/services/api.services';import{Case}from'../../core/models/api.models';import{caseStatus}from'../../shared/utils/case-status.helper';
-@Component({standalone:true,imports:[DatePipe,RouterLink],template:`<div class="page-head"><div><span class="eyebrow">GESTIÓN Y CONTINUIDAD</span><h1>Casos</h1><p>Fuente de verdad para responsables, estado y próxima acción.</p></div></div><section class="panel"><div class="filter-row"><input placeholder="Buscar caso o adolescente"><select><option>Todos los estados</option></select><select><option>Todos los responsables</option></select></div>@if(loading()){<div class="state-card">Cargando casos…</div>}@else if(error()){<div class="state-card error">{{error()}}</div>}@else if(!items().length){<div class="state-card"><h2>No hay casos en este alcance</h2></div>}@else{<div class="table-wrap"><table><thead><tr><th>Caso</th><th>Adolescente</th><th>Institución</th><th>Estado</th><th>Responsable</th><th>Próxima acción</th><th></th></tr></thead><tbody>@for(c of items();track c.id){<tr><td><b>#{{c.id.slice(0,8)}}</b></td><td>{{c.adolescente.codigo}}</td><td>{{c.institucion.nombre}}</td><td><span class="badge" [class]="'badge '+status(c.estado).className">{{status(c.estado).label}}</span></td><td>{{c.responsableActual?.nombre||'Sin responsable'}}</td><td>{{c.proximaAccion||'Por definir'}}<small>{{c.fechaProximaAccion|date:'dd MMM yyyy'}}</small></td><td><a [routerLink]="['/casos',c.id]">Ver caso →</a></td></tr>}</tbody></table></div>}</section>`})export class CasesComponent{private api=inject(CasesService);items=signal<Case[]>([]);loading=signal(true);error=signal('');status=caseStatus;constructor(){this.api.list().subscribe({next:r=>{this.items.set(r.cases);this.loading.set(false)},error:()=>{this.error.set('No fue posible consultar los casos.');this.loading.set(false)}})}}
+import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { CasesService } from '../../core/services/api.services';
+import { Case } from '../../core/models/api.models';
+import { caseStatus } from '../../shared/utils/case-status.helper';
+@Component({
+  standalone: true,
+  imports: [DatePipe, RouterLink],
+  template: `<div class="page-head">
+      <div>
+        <span class="eyebrow">GESTIÓN Y CONTINUIDAD</span>
+        <h1>Casos</h1>
+        <p>Fuente de verdad para responsables, estado y próxima acción.</p>
+      </div>
+    </div>
+    <section class="panel">
+      <div class="filter-row">
+        <input placeholder="Buscar caso o adolescente" /><select>
+          <option>Todos los estados</option></select
+        ><select>
+          <option>Todos los responsables</option>
+        </select>
+      </div>
+      @if (loading()) {
+        <div class="state-card">Cargando casos…</div>
+      } @else if (error()) {
+        <div class="state-card error">{{ error() }}</div>
+      } @else if (!items().length) {
+        <div class="state-card"><h2>No hay casos en este alcance</h2></div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Caso</th>
+                <th>Adolescente</th>
+                <th>Institución</th>
+                <th>Estado</th>
+                <th>Responsable</th>
+                <th>Próxima acción</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of items(); track c.id) {
+                <tr>
+                  <td>
+                    <b>#{{ c.id.slice(0, 8) }}</b>
+                  </td>
+                  <td>{{ c.adolescente.codigo }}</td>
+                  <td>{{ c.institucion.nombre }}</td>
+                  <td>
+                    <span class="badge" [class]="'badge ' + status(c.estado).className">{{
+                      status(c.estado).label
+                    }}</span>
+                  </td>
+                  <td>{{ c.responsableActual?.nombre || 'Sin responsable' }}</td>
+                  <td>
+                    {{ c.proximaAccion || 'Por definir'
+                    }}<small>{{ c.fechaProximaAccion | date: 'dd MMM yyyy' }}</small>
+                  </td>
+                  <td><a [routerLink]="['/casos', c.id]">Ver caso →</a></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>`,
+})
+export class CasesComponent {
+  private api = inject(CasesService);
+  items = signal<Case[]>([]);
+  loading = signal(true);
+  error = signal('');
+  status = caseStatus;
+  constructor() {
+    this.api.list().subscribe({
+      next: (r) => {
+        this.items.set(r.cases);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('No fue posible consultar los casos.');
+        this.loading.set(false);
+      },
+    });
+  }
+}

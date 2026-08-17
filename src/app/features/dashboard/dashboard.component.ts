@@ -1,3 +1,131 @@
-import{Component,inject,signal}from'@angular/core';import{DashboardService}from'../../core/services/api.services';import{forkJoin}from'rxjs';
-@Component({standalone:true,template:`<div class="page-head"><div><span class="eyebrow">PANORAMA OPERATIVO</span><h1>Buenos días</h1><p>Este es el estado del acompañamiento adolescente en tu alcance institucional.</p></div><span class="live">● Datos agregados</span></div>@if(loading()){<section class="state-card">Cargando indicadores reales…</section>}@else if(error()){<section class="state-card error">{{error()}}</section>}@else{<div class="stat-grid">@for(item of stats();track item.label){<article class="stat"><span>{{item.icon}}</span><small>{{item.label}}</small><strong>{{item.value}}</strong><i>{{item.note}}</i></article>}</div><div class="panel-grid"><section class="panel wide"><header><div><h2>Evolución de aplicaciones</h2><p>Información agregada del periodo consultado</p></div><select aria-label="Agrupación"><option>Por día</option><option>Por semana</option><option>Por mes</option></select></header><div class="chart-placeholder"><div class="bars">@for(n of [42,58,48,76,64,86,70,92];track $index){<i [style.height.%]="n"></i>}</div><small>La visualización se alimenta exclusivamente del dashboard poblacional.</small></div></section><section class="panel"><h2>Atención prioritaria</h2><p>Señales que requieren gestión del equipo.</p><div class="priority"><b>{{number(security(),'sinResponsable')}}</b><span>Alertas sin responsable</span></div><div class="priority amber"><b>{{number(routes(),'seguimientosVencidos')}}</b><span>Seguimientos vencidos</span></div></section></div>}`})
-export class DashboardComponent{private api=inject(DashboardService);loading=signal(true);error=signal('');p=signal<Record<string,unknown>>({});s=signal<Record<string,unknown>>({});r=signal<Record<string,unknown>>({});constructor(){forkJoin({p:this.api.get('poblacional'),s:this.api.get('seguridad'),r:this.api.get('rutas')}).subscribe({next:x=>{this.p.set(x.p);this.s.set(x.s);this.r.set(x.r);this.loading.set(false)},error:()=>{this.error.set('No fue posible cargar los indicadores. Verifica la conexión con el backend.');this.loading.set(false)}})}number(o:Record<string,unknown>,k:string){const v=o[k];return typeof v==='number'?v:'—'}security(){return this.s()}routes(){return this.r()}stats(){return[{label:'Adolescentes evaluados',value:this.number(this.p(),'totalEvaluados'),icon:'◉',note:'Datos poblacionales'},{label:'Alertas activas',value:this.number(this.s(),'alertasGeneradas'),icon:'◇',note:'Panel de seguridad'},{label:'Casos abiertos',value:this.number(this.r(),'rutasAbiertas'),icon:'□',note:'Gestión activa'},{label:'Casos cerrados',value:this.number(this.r(),'casosCerrados'),icon:'✓',note:'Cierre verificado'}]}}
+import { Component, inject, signal } from '@angular/core';
+import { DashboardService } from '../../core/services/api.services';
+import { forkJoin } from 'rxjs';
+@Component({
+  standalone: true,
+  template: `<div class="page-head">
+      <div>
+        <span class="eyebrow">PANORAMA OPERATIVO</span>
+        <h1>Buenos días</h1>
+        <p>Este es el estado del acompañamiento adolescente en tu alcance institucional.</p>
+      </div>
+      <span class="live">● Datos agregados</span>
+    </div>
+    @if (loading()) {
+      <section class="state-card">Cargando indicadores reales…</section>
+    } @else if (error()) {
+      <section class="state-card error">{{ error() }}</section>
+    } @else {
+      <div class="stat-grid">
+        @for (item of stats(); track item.label) {
+          <article class="stat">
+            <span>{{ item.icon }}</span
+            ><small>{{ item.label }}</small
+            ><strong>{{ item.value }}</strong
+            ><i>{{ item.note }}</i>
+          </article>
+        }
+      </div>
+      <div class="panel-grid">
+        <section class="panel wide">
+          <header>
+            <div>
+              <h2>Evolución de aplicaciones</h2>
+              <p>Información agregada del periodo consultado</p>
+            </div>
+            <select aria-label="Agrupación">
+              <option>Por día</option>
+              <option>Por semana</option>
+              <option>Por mes</option>
+            </select>
+          </header>
+          <div class="chart-placeholder">
+            <div class="bars">
+              @for (n of [42, 58, 48, 76, 64, 86, 70, 92]; track $index) {
+                <i [style.height.%]="n"></i>
+              }
+            </div>
+            <small>La visualización se alimenta exclusivamente del dashboard poblacional.</small>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>Atención prioritaria</h2>
+          <p>Señales que requieren gestión del equipo.</p>
+          <div class="priority">
+            <b>{{ number(security(), 'sinResponsable') }}</b
+            ><span>Alertas sin responsable</span>
+          </div>
+          <div class="priority amber">
+            <b>{{ number(routes(), 'seguimientosVencidos') }}</b
+            ><span>Seguimientos vencidos</span>
+          </div>
+        </section>
+      </div>
+    }`,
+})
+export class DashboardComponent {
+  private api = inject(DashboardService);
+  loading = signal(true);
+  error = signal('');
+  p = signal<Record<string, unknown>>({});
+  s = signal<Record<string, unknown>>({});
+  r = signal<Record<string, unknown>>({});
+  constructor() {
+    forkJoin({
+      p: this.api.get('poblacional'),
+      s: this.api.get('seguridad'),
+      r: this.api.get('rutas'),
+    }).subscribe({
+      next: (x) => {
+        this.p.set(x.p);
+        this.s.set(x.s);
+        this.r.set(x.r);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set(
+          'No fue posible cargar los indicadores. Verifica la conexión con el backend.',
+        );
+        this.loading.set(false);
+      },
+    });
+  }
+  number(o: Record<string, unknown>, k: string) {
+    const v = o[k];
+    return typeof v === 'number' ? v : '—';
+  }
+  security() {
+    return this.s();
+  }
+  routes() {
+    return this.r();
+  }
+  stats() {
+    return [
+      {
+        label: 'Adolescentes evaluados',
+        value: this.number(this.p(), 'totalEvaluados'),
+        icon: '◉',
+        note: 'Datos poblacionales',
+      },
+      {
+        label: 'Alertas activas',
+        value: this.number(this.s(), 'alertasGeneradas'),
+        icon: '◇',
+        note: 'Panel de seguridad',
+      },
+      {
+        label: 'Casos abiertos',
+        value: this.number(this.r(), 'rutasAbiertas'),
+        icon: '□',
+        note: 'Gestión activa',
+      },
+      {
+        label: 'Casos cerrados',
+        value: this.number(this.r(), 'casosCerrados'),
+        icon: '✓',
+        note: 'Cierre verificado',
+      },
+    ];
+  }
+}

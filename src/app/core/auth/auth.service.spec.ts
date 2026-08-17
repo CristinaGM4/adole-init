@@ -1,2 +1,41 @@
-import{TestBed}from'@angular/core/testing';import{provideHttpClient}from'@angular/common/http';import{provideHttpClientTesting,HttpTestingController}from'@angular/common/http/testing';import{provideRouter}from'@angular/router';import{AuthService}from'./auth.service';
-describe('AuthService',()=>{let service:AuthService;let http:HttpTestingController;beforeEach(()=>{sessionStorage.clear();TestBed.configureTestingModule({providers:[provideHttpClient(),provideHttpClientTesting(),provideRouter([])]});service=TestBed.inject(AuthService);http=TestBed.inject(HttpTestingController)});afterEach(()=>http.verify());it('login guarda JWT solo en sessionStorage y consulta /auth/me',()=>{service.login('a@b.co','clave').subscribe(u=>expect(u.rol).toBe('ADMIN'));http.expectOne(r=>r.url.endsWith('/auth/login')).flush({token:'jwt'});http.expectOne(r=>r.url.endsWith('/auth/me')).flush({user:{id:'1',nombre:'Ana',email:'a@b.co',rol:'ADMIN',institucionId:null,activo:true}});expect(sessionStorage.getItem('bienestar_session_token')).toBe('jwt');expect(localStorage.getItem('bienestar_session_token')).toBeNull()});it('logout elimina la sesión',()=>{sessionStorage.setItem('bienestar_session_token','jwt');service.logout(false);expect(service.token).toBeNull()})});
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
+import { AuthService } from './auth.service';
+describe('AuthService', () => {
+  let service: AuthService;
+  let http: HttpTestingController;
+  beforeEach(() => {
+    sessionStorage.clear();
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    service = TestBed.inject(AuthService);
+    http = TestBed.inject(HttpTestingController);
+  });
+  afterEach(() => http.verify());
+  it('login guarda JWT solo en sessionStorage y consulta /auth/me', () => {
+    service.login('a@b.co', 'clave').subscribe((u) => expect(u.rol).toBe('ADMIN'));
+    http.expectOne((r) => r.url.endsWith('/auth/login')).flush({ token: 'jwt' });
+    http
+      .expectOne((r) => r.url.endsWith('/auth/me'))
+      .flush({
+        user: {
+          id: '1',
+          nombre: 'Ana',
+          email: 'a@b.co',
+          rol: 'ADMIN',
+          institucionId: null,
+          activo: true,
+        },
+      });
+    expect(sessionStorage.getItem('bienestar_session_token')).toBe('jwt');
+    expect(localStorage.getItem('bienestar_session_token')).toBeNull();
+  });
+  it('logout elimina la sesión', () => {
+    sessionStorage.setItem('bienestar_session_token', 'jwt');
+    service.logout(false);
+    expect(service.token).toBeNull();
+  });
+});
