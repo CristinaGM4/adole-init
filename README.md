@@ -1,6 +1,6 @@
-# Bienestar Adolescente Manizales — Frontend
+# Bienestar Infantil y Adolescente Manizales — Frontend
 
-Frontend Angular 21 para el módulo adolescente IPBAM-20. Consume el backend existente; no contiene backend, datos ficticios, módulo infantil ni módulo de cuidadores.
+Frontend Angular 21 para los instrumentos IPBAM-20 e IPBIM-C20. Consume el backend existente, no contiene backend ni utiliza datos ficticios. Incluye el formulario público para adolescentes y el formulario infantil respondido por cuidadores, además del panel institucional.
 
 ## Requisitos
 
@@ -39,3 +39,7 @@ Para un despliegue real, el origen público donde se aloje este frontend debe in
 ## Seguridad
 
 El JWT se guarda solo en `sessionStorage`, se adjunta con un interceptor y se elimina en respuestas 401. Un 403 conserva la sesión. El formulario nunca muestra al adolescente puntajes, perfil, alerta técnica ni diagnóstico.
+
+## Tutorial de uso
+
+Consulte [TUTORIAL_USUARIO.md](./TUTORIAL_USUARIO.md) para el recorrido completo del formulario público, panel institucional, alertas, casos, seguimientos y administración.

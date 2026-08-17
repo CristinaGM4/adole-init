@@ -74,6 +74,7 @@ export interface Application {
   alerta?: Alert | null;
   institucion?: Institution;
   caso?: Case;
+  contextoTemblor?: SociodemographicContextInput | null;
 }
 export interface Case {
   id: string;
@@ -216,7 +217,7 @@ export type TipoConviviente =
   | 'FAMILIA_ACOGIDA_OTRO_CUIDADOR'
   | 'OTRA_SITUACION';
 export type PersonaInformante =
-  'MADRE' | 'PADRE' | 'ABUELO_ABUELA' | 'OTRO_FAMILIAR' | 'OTRO_CUIDADOR';
+  'ADOLESCENTE' | 'MADRE' | 'PADRE' | 'ABUELO_ABUELA' | 'OTRO_FAMILIAR' | 'OTRO_CUIDADOR';
 export type LesionFisica =
   | 'NO'
   | 'LEVE_SIN_ATENCION_MEDICA'
@@ -328,11 +329,29 @@ export interface PopulationDashboardResponse {
     institucionesParticipantes: number;
     formulariosCompletos: number;
     formulariosIncompletos: number;
+    formulariosConContextoSociodemografico: number;
   };
   distribucionEdad: DashboardDistribution[];
   distribucionInstitucion: DashboardDistribution[];
   distribucionPerfil: DashboardDistribution[];
   distribucionDominios: Record<string, DashboardDistribution[]>;
+  sociodemografico: {
+    distribucionSexo: DashboardDistribution[];
+    distribucionEscolarizacion: DashboardDistribution[];
+    distribucionGrado: DashboardDistribution[];
+    distribucionComunaCorregimiento: DashboardDistribution[];
+    distribucionConvivencia: DashboardDistribution[];
+    distribucionPersonaInformante: DashboardDistribution[];
+  };
+  afectacionesTemblor: {
+    distribucionLesionFisica: DashboardDistribution[];
+    distribucionTiposLesion: DashboardDistribution[];
+    distribucionFamiliaresHeridos: DashboardDistribution[];
+    distribucionSalidaVivienda: DashboardDistribution[];
+    distribucionDanosVivienda: DashboardDistribution[];
+    distribucionNecesidadesServicios: DashboardDistribution[];
+    distribucionCambioTemporal: DashboardDistribution[];
+  };
   evolucionTemporal: { periodo: string; total: number }[];
   resultadosPorInstrumento: {
     ADOLESCENTE: { aplicaciones: number; perfiles: DashboardDistribution[] };

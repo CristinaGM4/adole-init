@@ -1,17 +1,28 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
 import {
+  Application,
   DashboardDistribution,
   Institution,
   PopulationDashboardResponse,
   RoutesDashboardResponse,
   SecurityDashboardResponse,
 } from '../../core/models/api.models';
-import { DashboardService, InstitutionsService } from '../../core/services/api.services';
+import {
+  ApplicationsService,
+  DashboardService,
+  InstitutionsService,
+} from '../../core/services/api.services';
 import { operationalProfileLabel } from '../../shared/utils/operational-profile.helper';
 
 // Dashboard alimentado exclusivamente por los tres endpoints agregados del backend.
+
+interface CrossAnalysisData {
+  total: number;
+  sociodemografico: PopulationDashboardResponse['sociodemografico'];
+  afectacionesTemblor: PopulationDashboardResponse['afectacionesTemblor'];
+}
 
 @Component({
   standalone: true,
@@ -182,6 +193,157 @@ import { operationalProfileLabel } from '../../shared/utils/operational-profile.
           </div>
         </section>
       </div>
+
+      <div class="dashboard-section-title section-space">
+        <div>
+          <span class="eyebrow">CARACTERIZACIÓN SOCIODEMOGRÁFICA</span>
+          <h2>Contexto de los participantes</h2>
+          <p>Información agregada y separada de los resultados de bienestar.</p>
+        </div>
+        <span class="total-chip">{{ analysisDenominator() }} formularios con contexto</span>
+      </div>
+      <section class="panel cross-filter" aria-labelledby="cross-filter-title">
+        <div class="cross-filter-copy">
+          <span class="eyebrow">ANÁLISIS CRUZADO</span>
+          <h3 id="cross-filter-title">Relacionar contexto y perfil operativo</h3>
+          <p>
+            Selecciona una población o un perfil. Las gráficas se recalculan con las aplicaciones
+            que coinciden realmente.
+          </p>
+        </div>
+        <div class="cross-controls">
+          <label
+            >Población<select
+              [value]="analysisInstrument()"
+              (change)="setAnalysisInstrument($event)"
+            >
+              <option value="">Niños y adolescentes</option>
+              <option value="ADOLESCENTE">Adolescentes · IPBAM-20</option>
+              <option value="INFANTIL_CUIDADOR">Niños · IPBIM-C20</option>
+            </select></label
+          >
+          <label
+            >Perfil operativo<select
+              [value]="analysisProfile()"
+              (change)="setAnalysisProfile($event)"
+            >
+              <option value="">Todos los perfiles</option>
+              @for (profile of analysisProfiles(); track profile.categoria) {
+                <option [value]="profile.categoria">
+                  {{ profileName(profile.categoria) }} ({{ profile.total }})
+                </option>
+              }
+            </select></label
+          >
+          <div class="cross-actions">
+            <button
+              class="primary"
+              type="button"
+              (click)="loadCrossAnalysis()"
+              [disabled]="analysisLoading()"
+            >
+              {{ analysisLoading() ? 'Consultando…' : 'Aplicar' }}
+            </button>
+            @if (analysisActive()) {
+              <button class="secondary" type="button" (click)="clearCrossAnalysis()">
+                Restablecer
+              </button>
+            }
+          </div>
+        </div>
+        @if (analysisError()) {
+          <p class="cross-message error" role="alert">{{ analysisError() }}</p>
+        } @else if (analysisActive()) {
+          <p class="cross-message" role="status">
+            <strong>{{ analysisMatchingApplications() }}</strong> aplicaciones coinciden con el
+            instrumento y perfil. <strong>{{ analysisDenominator() }}</strong> tienen contexto
+            sociodemográfico disponible para estas gráficas.
+          </p>
+        }
+      </section>
+      @if (analysisDenominator()) {
+        <div class="distribution-grid">
+          @for (chart of sociodemographicCharts(); track chart.title) {
+            <article class="panel distribution-card">
+              <header>
+                <div>
+                  <h3>{{ chart.title }}</h3>
+                  @if (chart.multiple) {
+                    <small class="multiple-chip">Respuesta múltiple</small>
+                  }
+                </div>
+              </header>
+              <div class="horizontal-bars">
+                @for (item of chart.items; track item.categoria) {
+                  <div>
+                    <span [title]="categoryName(item.categoria)">{{
+                      categoryName(item.categoria)
+                    }}</span
+                    ><i [title]="contextPercent(item.total) + '%'"
+                      ><b [style.width.%]="contextPercent(item.total)"></b></i
+                    ><strong>{{ item.total }}</strong>
+                  </div>
+                } @empty {
+                  <div class="compact-empty">Sin respuestas registradas.</div>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="panel compact-empty">
+          @if (analysisActive() && analysisMatchingApplications()) {
+            Las aplicaciones coincidentes no tienen contexto sociodemográfico almacenado. Es
+            probable que hayan sido recibidas antes de incorporar este bloque al formulario.
+          } @else if (analysisActive()) {
+            No hay aplicaciones que coincidan con el instrumento y perfil seleccionados.
+          } @else {
+            No hay formularios con contexto sociodemográfico en el periodo seleccionado.
+          }
+        </div>
+      }
+
+      <div class="dashboard-section-title section-space">
+        <div>
+          <span class="eyebrow">AFECTACIONES DEL TEMBLOR</span>
+          <h2>Impacto físico y material</h2>
+          <p>Estos datos no forman parte de los puntajes ni de los perfiles de bienestar.</p>
+        </div>
+      </div>
+      @if (analysisDenominator()) {
+        <div class="distribution-grid">
+          @for (chart of earthquakeCharts(); track chart.title) {
+            <article class="panel distribution-card">
+              <header>
+                <div>
+                  <h3>{{ chart.title }}</h3>
+                  @if (chart.multiple) {
+                    <small class="multiple-chip">Respuesta múltiple</small>
+                  }
+                </div>
+              </header>
+              <div class="horizontal-bars">
+                @for (item of chart.items; track item.categoria) {
+                  <div>
+                    <span [title]="categoryName(item.categoria)">{{
+                      categoryName(item.categoria)
+                    }}</span
+                    ><i [title]="contextPercent(item.total) + '%'"
+                      ><b [style.width.%]="contextPercent(item.total)"></b></i
+                    ><strong>{{ item.total }}</strong>
+                  </div>
+                } @empty {
+                  <div class="compact-empty">Sin respuestas registradas.</div>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="panel compact-empty">
+          No hay afectaciones del temblor disponibles para la selección actual.
+        </div>
+      }
 
       <div class="dashboard-section-title section-space">
         <div>
@@ -458,6 +620,101 @@ import { operationalProfileLabel } from '../../shared/utils/operational-profile.
       border-radius: 50%;
       background: #d9a84e;
     }
+    .cross-filter {
+      margin-bottom: 1rem;
+      padding: 1.25rem;
+      border-color: #b9dcd5;
+      background: linear-gradient(135deg, #f8fcfb, #fff);
+    }
+    .cross-filter-copy {
+      max-width: 720px;
+    }
+    .cross-filter-copy h3,
+    .cross-filter-copy p {
+      margin: 0.2rem 0 0;
+    }
+    .cross-filter-copy p,
+    .cross-message {
+      color: #627a76;
+      font-size: 0.76rem;
+    }
+    .cross-filter label {
+      display: grid;
+      gap: 0.35rem;
+      color: #526d68;
+      font-size: 0.72rem;
+      font-weight: 700;
+      min-width: 0;
+    }
+    .cross-filter select {
+      min-height: 43px;
+      padding: 0 0.75rem;
+      border: 1px solid #c8d9d6;
+      border-radius: 10px;
+      background: #fff;
+      color: #173a35;
+      width: 100%;
+      min-width: 0;
+      text-overflow: ellipsis;
+    }
+    .cross-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) auto;
+      gap: 0.8rem;
+      align-items: end;
+      margin-top: 1rem;
+    }
+    .cross-actions {
+      display: flex;
+      gap: 0.55rem;
+      min-width: 0;
+    }
+    .cross-actions button {
+      min-width: 0;
+      padding-inline: 1rem;
+      white-space: nowrap;
+    }
+    .cross-message {
+      margin: 0.8rem 0 0;
+      padding: 0.65rem 0.8rem;
+      border-radius: 9px;
+      background: #e8f5f2;
+      color: #176f61;
+    }
+    .cross-message.error {
+      background: #fff3e2;
+      color: #895a18;
+    }
+    .distribution-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .distribution-card h3 {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+    .distribution-card header {
+      min-height: 35px;
+    }
+    .distribution-card .horizontal-bars > div {
+      grid-template-columns: minmax(105px, 1.35fr) minmax(65px, 1fr) 28px;
+    }
+    .distribution-card .horizontal-bars span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .multiple-chip {
+      display: inline-block;
+      margin-top: 0.25rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 999px;
+      background: #fff2d9;
+      color: #8a5e18;
+      font-size: 0.62rem;
+      font-weight: 750;
+    }
     .section-space {
       margin-top: 2.3rem;
     }
@@ -517,6 +774,9 @@ import { operationalProfileLabel } from '../../shared/utils/operational-profile.
       .indicator-grid {
         grid-template-columns: repeat(4, 1fr);
       }
+      .distribution-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
     @media (max-width: 800px) {
       .dashboard-filters,
@@ -525,6 +785,12 @@ import { operationalProfileLabel } from '../../shared/utils/operational-profile.
       .indicator-grid,
       .dashboard-grid {
         grid-template-columns: 1fr 1fr;
+      }
+      .cross-controls {
+        grid-template-columns: 1fr 1fr;
+      }
+      .cross-actions {
+        grid-column: 1/-1;
       }
       .dashboard-filters > div:first-child,
       .filter-actions,
@@ -548,6 +814,19 @@ import { operationalProfileLabel } from '../../shared/utils/operational-profile.
       .indicator-grid {
         grid-template-columns: 1fr;
       }
+      .cross-controls {
+        grid-template-columns: 1fr;
+      }
+      .cross-controls > *,
+      .cross-actions {
+        grid-column: auto;
+      }
+      .cross-actions button {
+        flex: 1;
+      }
+      .distribution-grid {
+        grid-template-columns: 1fr;
+      }
       .dashboard-filters > *,
       .filter-actions {
         grid-column: auto;
@@ -562,6 +841,7 @@ import { operationalProfileLabel } from '../../shared/utils/operational-profile.
 export class DashboardComponent {
   private dashboardApi = inject(DashboardService);
   private institutionsApi = inject(InstitutionsService);
+  private applicationsApi = inject(ApplicationsService);
   loading = signal(true);
   error = signal('');
   population = signal<PopulationDashboardResponse | null>(null);
@@ -572,10 +852,37 @@ export class DashboardComponent {
   to = signal('');
   institutionId = signal('');
   grouping = signal<'dia' | 'semana' | 'mes'>('dia');
+  analysisInstrument = signal<'' | 'ADOLESCENTE' | 'INFANTIL_CUIDADOR'>('');
+  analysisProfile = signal('');
+  appliedAnalysisInstrument = signal('');
+  appliedAnalysisProfile = signal('');
+  analysisLoading = signal(false);
+  analysisError = signal('');
+  analysisMatchingApplications = signal(0);
+  crossAnalysis = signal<CrossAnalysisData | null>(null);
   generatedAt = computed(() => this.population()?.metadata.generadoAt ?? null);
   evolutionMax = computed(() => this.max(this.population()?.evolucionTemporal ?? []));
   ageMax = computed(() => this.max(this.population()?.distribucionEdad ?? []));
   institutionMax = computed(() => this.max(this.population()?.distribucionInstitucion ?? []));
+  analysisActive = computed(() =>
+    Boolean(this.appliedAnalysisInstrument() || this.appliedAnalysisProfile()),
+  );
+  analysisDenominator = computed(() =>
+    this.analysisActive()
+      ? (this.crossAnalysis()?.total ?? 0)
+      : (this.population()?.resumen.formulariosConContextoSociodemografico ?? 0),
+  );
+  analysisProfiles = computed(() => {
+    const population = this.population();
+    if (!population) return [];
+    if (this.analysisInstrument() === 'ADOLESCENTE') {
+      return population.resultadosPorInstrumento.ADOLESCENTE.perfiles;
+    }
+    if (this.analysisInstrument() === 'INFANTIL_CUIDADOR') {
+      return population.resultadosPorInstrumento.INFANTIL_CUIDADOR.perfiles;
+    }
+    return population.distribucionPerfil;
+  });
   completionRate = computed(() => {
     const s = this.population()?.resumen;
     return s?.aplicaciones ? Math.round((s.formulariosCompletos / s.aplicaciones) * 100) : 0;
@@ -713,13 +1020,191 @@ export class DashboardComponent {
       },
     ];
   });
+  sociodemographicCharts = computed(() => {
+    const data = this.analysisActive()
+      ? this.crossAnalysis()?.sociodemografico
+      : this.population()?.sociodemografico;
+    return [
+      { title: 'Sexo registrado al nacer', items: data?.distribucionSexo ?? [], multiple: false },
+      { title: 'Escolarización', items: data?.distribucionEscolarizacion ?? [], multiple: false },
+      { title: 'Grado actual', items: data?.distribucionGrado ?? [], multiple: false },
+      {
+        title: 'Comuna o corregimiento',
+        items: data?.distribucionComunaCorregimiento ?? [],
+        multiple: false,
+      },
+      { title: 'Convivencia', items: data?.distribucionConvivencia ?? [], multiple: true },
+      {
+        title: 'Persona informante',
+        items: data?.distribucionPersonaInformante ?? [],
+        multiple: false,
+      },
+    ];
+  });
+  earthquakeCharts = computed(() => {
+    const data = this.analysisActive()
+      ? this.crossAnalysis()?.afectacionesTemblor
+      : this.population()?.afectacionesTemblor;
+    return [
+      { title: 'Lesión física', items: data?.distribucionLesionFisica ?? [], multiple: false },
+      { title: 'Tipo de lesión', items: data?.distribucionTiposLesion ?? [], multiple: true },
+      {
+        title: 'Familiares heridos',
+        items: data?.distribucionFamiliaresHeridos ?? [],
+        multiple: false,
+      },
+      {
+        title: 'Salida de la vivienda',
+        items: data?.distribucionSalidaVivienda ?? [],
+        multiple: false,
+      },
+      {
+        title: 'Daños en la vivienda',
+        items: data?.distribucionDanosVivienda ?? [],
+        multiple: false,
+      },
+      {
+        title: 'Servicios o necesidades afectados',
+        items: data?.distribucionNecesidadesServicios ?? [],
+        multiple: true,
+      },
+      { title: 'Cambio temporal', items: data?.distribucionCambioTemporal ?? [], multiple: false },
+    ];
+  });
+
+  setAnalysisInstrument(event: Event) {
+    this.analysisInstrument.set(
+      (event.target as HTMLSelectElement).value as '' | 'ADOLESCENTE' | 'INFANTIL_CUIDADOR',
+    );
+    this.analysisProfile.set('');
+  }
+
+  setAnalysisProfile(event: Event) {
+    this.analysisProfile.set((event.target as HTMLSelectElement).value);
+  }
+
+  loadCrossAnalysis() {
+    const instrument = this.analysisInstrument();
+    const profile = this.analysisProfile();
+    if (!instrument && !profile) {
+      this.clearCrossAnalysis();
+      return;
+    }
+    this.analysisLoading.set(true);
+    this.analysisError.set('');
+    const listFilters: Record<string, string> = this.institutionId()
+      ? { institucionId: this.institutionId() }
+      : {};
+    this.applicationsApi
+      .list(listFilters)
+      .pipe(
+        switchMap(({ applications }) => {
+          const matching = applications.filter((application) => {
+            const date = application.fechaEnvio.slice(0, 10);
+            const inRange =
+              (!this.from() || date >= this.from()) && (!this.to() || date <= this.to());
+            const sameInstrument = !instrument || application.tipoInstrumento === instrument;
+            const applicationProfile = this.applicationProfile(application);
+            return inRange && sameInstrument && (!profile || applicationProfile === profile);
+          });
+          this.analysisMatchingApplications.set(matching.length);
+          return matching.length
+            ? forkJoin(matching.map((application) => this.applicationsApi.get(application.id)))
+            : of([]);
+        }),
+      )
+      .subscribe({
+        next: (responses) => {
+          const applications = responses.map((response) => response.application);
+          this.crossAnalysis.set(this.aggregateContexts(applications));
+          this.appliedAnalysisInstrument.set(instrument);
+          this.appliedAnalysisProfile.set(profile);
+          this.analysisLoading.set(false);
+        },
+        error: () => {
+          this.analysisError.set(
+            'No fue posible construir el análisis cruzado. Inténtalo nuevamente.',
+          );
+          this.analysisLoading.set(false);
+        },
+      });
+  }
+
+  clearCrossAnalysis() {
+    this.analysisInstrument.set('');
+    this.analysisProfile.set('');
+    this.appliedAnalysisInstrument.set('');
+    this.appliedAnalysisProfile.set('');
+    this.crossAnalysis.set(null);
+    this.analysisMatchingApplications.set(0);
+    this.analysisError.set('');
+  }
+
+  private applicationProfile(application: Application) {
+    return application.tipoInstrumento === 'INFANTIL_CUIDADOR'
+      ? application.resultadoInfantil?.perfilOperativo
+      : application.resultado?.perfilOperativo;
+  }
+
+  private aggregateContexts(items: Application[]): CrossAnalysisData {
+    const buckets: Record<string, Record<string, number>> = {};
+    const add = (name: string, value: string | null | undefined) => {
+      const category = value ?? 'SIN_DATO';
+      buckets[name] ??= {};
+      buckets[name][category] = (buckets[name][category] ?? 0) + 1;
+    };
+    let total = 0;
+    for (const application of items) {
+      const context = application.contextoTemblor;
+      if (!context) continue;
+      total++;
+      add('sexo', context.sexoRegistradoNacimiento);
+      add('escolarizacion', context.escolarizacion);
+      add(
+        'grado',
+        context.grado ?? (context.escolarizacion === 'NO_ESCOLARIZADO' ? 'NO_APLICA' : 'SIN_DATO'),
+      );
+      add('comuna', context.comunaCorregimiento);
+      context.convivencia.forEach((value) => add('convivencia', value));
+      add('informante', context.personaInformante);
+      add('lesion', context.lesionFisica);
+      context.tiposLesion.forEach((value) => add('tiposLesion', value));
+      add('familiaresHeridos', context.familiaresHeridos);
+      add('salidaVivienda', context.salidaVivienda);
+      add('danosVivienda', context.danosVivienda);
+      context.necesidadesServicios.forEach((value) => add('necesidades', value));
+      add('cambioTemporal', context.cambioResidenciaEscuelaCuidador);
+    }
+    const distribution = (name: string): DashboardDistribution[] =>
+      Object.entries(buckets[name] ?? {})
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([categoria, count]) => ({ categoria, total: count }));
+    return {
+      total,
+      sociodemografico: {
+        distribucionSexo: distribution('sexo'),
+        distribucionEscolarizacion: distribution('escolarizacion'),
+        distribucionGrado: distribution('grado'),
+        distribucionComunaCorregimiento: distribution('comuna'),
+        distribucionConvivencia: distribution('convivencia'),
+        distribucionPersonaInformante: distribution('informante'),
+      },
+      afectacionesTemblor: {
+        distribucionLesionFisica: distribution('lesion'),
+        distribucionTiposLesion: distribution('tiposLesion'),
+        distribucionFamiliaresHeridos: distribution('familiaresHeridos'),
+        distribucionSalidaVivienda: distribution('salidaVivienda'),
+        distribucionDanosVivienda: distribution('danosVivienda'),
+        distribucionNecesidadesServicios: distribution('necesidades'),
+        distribucionCambioTemporal: distribution('cambioTemporal'),
+      },
+    };
+  }
 
   constructor() {
-    this.institutionsApi
-      .list()
-      .subscribe({
-        next: ({ institutions }) => this.institutions.set(institutions.filter((i) => i.activa)),
-      });
+    this.institutionsApi.list().subscribe({
+      next: ({ institutions }) => this.institutions.set(institutions.filter((i) => i.activa)),
+    });
     this.load();
   }
   load() {
@@ -729,6 +1214,7 @@ export class DashboardComponent {
     }
     this.loading.set(true);
     this.error.set('');
+    this.clearCrossAnalysis();
     const filters = this.filters();
     forkJoin({
       population: this.dashboardApi.population(filters),
@@ -776,6 +1262,65 @@ export class DashboardComponent {
   }
   categoryLabel(v: string) {
     return v === 'OTRA_EDAD' ? 'Otra edad' : v + ' años';
+  }
+  categoryName(value: string) {
+    const labels: Record<string, string> = {
+      FEMENINO: 'Femenino',
+      MASCULINO: 'Masculino',
+      INTERSEXUAL: 'Intersexual',
+      PREFIERE_NO_RESPONDER: 'Prefiere no responder',
+      ESCOLARIZADO: 'Escolarizado',
+      NO_ESCOLARIZADO: 'No escolarizado',
+      NO_APLICA: 'No aplica',
+      SIN_DATO: 'Sin dato',
+      TRANSICION: 'Transición',
+      COMPLEMENTARIO: 'Complementario',
+      MADRE: 'Madre',
+      PADRE: 'Padre',
+      HERMANOS_HERMANAS: 'Hermanos o hermanas',
+      ABUELOS_ABUELAS: 'Abuelos o abuelas',
+      OTROS_FAMILIARES: 'Otros familiares',
+      FAMILIA_ACOGIDA_OTRO_CUIDADOR: 'Familia de acogida u otro cuidador',
+      OTRA_SITUACION: 'Otra situación',
+      ADOLESCENTE: 'Adolescente',
+      ABUELO_ABUELA: 'Abuelo o abuela',
+      OTRO_FAMILIAR: 'Otro familiar',
+      OTRO_CUIDADOR: 'Otro cuidador',
+      NO: 'No',
+      SI: 'Sí',
+      NO_SE: 'No sabe',
+      NO_SEGURO: 'No está seguro/a',
+      LEVE_SIN_ATENCION_MEDICA: 'Leve, sin atención médica',
+      NECESITO_ATENCION_MEDICA: 'Necesitó atención médica',
+      NECESITO_HOSPITALIZACION: 'Necesitó hospitalización',
+      GOLPE_CONTUSION: 'Golpe o contusión',
+      HERIDA_CORTADURA: 'Herida o cortadura',
+      CAIDA: 'Caída',
+      FRACTURA_LESION_IMPORTANTE: 'Fractura o lesión importante',
+      DIFICULTAD_RESPIRATORIA_DESCOMPENSACION: 'Dificultad respiratoria o descompensación',
+      OTRA: 'Otra',
+      ALGUNAS_HORAS: 'Algunas horas',
+      UNO_O_MAS_DIAS: 'Uno o más días',
+      AUN_NO_HA_REGRESADO: 'Aún no ha regresado',
+      DANOS_LEVES: 'Daños leves',
+      DIFICULTA_VIVIR_NORMALMENTE: 'Dificulta vivir normalmente',
+      GRAVE_NO_HABITABLE: 'Grave o no habitable',
+      AGUA: 'Agua',
+      ENERGIA: 'Energía',
+      ALIMENTACION: 'Alimentación',
+      MEDICAMENTOS: 'Medicamentos',
+      TRANSPORTE: 'Transporte',
+      ACCESO_SERVICIOS_SALUD: 'Acceso a servicios de salud',
+      NINGUNA: 'Ninguna',
+    };
+    const grade = value.match(/^GRADO_(\d+)$/);
+    return grade
+      ? `${grade[1]}.º`
+      : (labels[value] ?? value.replaceAll('_', ' ').toLocaleLowerCase('es'));
+  }
+  contextPercent(total: number) {
+    const denominator = this.analysisDenominator();
+    return denominator ? Math.min(100, Math.round((total / denominator) * 100)) : 0;
   }
   periodLabel(v: string) {
     const date = /^\d{4}-\d{2}$/.test(v)

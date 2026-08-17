@@ -53,6 +53,18 @@ describe('IPBAM-20', () => {
     f.componentInstance.meta.patchValue({ edad: 11 });
     expect(f.componentInstance.meta.controls.edad.invalid).toBe(true);
   });
+  it('asigna automáticamente adolescente como persona informante en IPBAM', () => {
+    const f = TestBed.createComponent(QuestionnaireComponent);
+    TestBed.inject(HttpTestingController)
+      .expectOne((r) => r.url.endsWith('/public/institutions'))
+      .flush({ institutions: [] });
+    expect(f.componentInstance.context.controls.personaInformante.value).toBe('ADOLESCENTE');
+    f.componentInstance.selectAudience('CUIDADOR');
+    expect(f.componentInstance.context.controls.personaInformante.value).toBe('');
+    f.componentInstance.context.controls.personaInformante.setValue('MADRE');
+    f.componentInstance.selectAudience('ADOLESCENTE');
+    expect(f.componentInstance.context.controls.personaInformante.value).toBe('ADOLESCENTE');
+  });
   it('registra consentimiento y asentimiento infantil por separado', () => {
     const f = TestBed.createComponent(QuestionnaireComponent);
     const http = TestBed.inject(HttpTestingController);

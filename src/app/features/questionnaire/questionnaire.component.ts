@@ -269,16 +269,25 @@ const childBlocks = [
                   <label
                     >Comuna o corregimiento donde vive<input formControlName="comunaCorregimiento"
                   /></label>
-                  <label
-                    >Persona que responde<select formControlName="personaInformante">
-                      <option value="">Selecciona…</option>
-                      <option value="MADRE">Madre</option>
-                      <option value="PADRE">Padre</option>
-                      <option value="ABUELO_ABUELA">Abuelo o abuela</option>
-                      <option value="OTRO_FAMILIAR">Otro familiar</option>
-                      <option value="OTRO_CUIDADOR">Otro cuidador</option>
-                    </select></label
-                  >
+                  @if (isChild()) {
+                    <label
+                      >Persona que responde<select formControlName="personaInformante">
+                        <option value="">Selecciona…</option>
+                        <option value="MADRE">Madre</option>
+                        <option value="PADRE">Padre</option>
+                        <option value="ABUELO_ABUELA">Abuelo o abuela</option>
+                        <option value="OTRO_FAMILIAR">Otro familiar</option>
+                        <option value="OTRO_CUIDADOR">Otro cuidador</option>
+                      </select></label
+                    >
+                  } @else {
+                    <label
+                      >Persona que responde<input
+                        value="Adolescente · formulario autoadministrado"
+                        readonly
+                        aria-label="Persona que responde"
+                    /></label>
+                  }
                 </div>
                 <fieldset class="multi-field">
                   <legend>¿Con quién vive actualmente?</legend>
@@ -821,7 +830,7 @@ export class QuestionnaireComponent {
       '',
       [Validators.required, Validators.minLength(2), Validators.maxLength(120)],
     ],
-    personaInformante: ['', Validators.required],
+    personaInformante: ['ADOLESCENTE', Validators.required],
     lesionFisica: ['', Validators.required],
     familiaresHeridos: ['', Validators.required],
     salidaVivienda: ['', Validators.required],
@@ -992,11 +1001,13 @@ export class QuestionnaireComponent {
       age.setValue(8);
       age.setValidators([Validators.required, Validators.min(5), Validators.max(10)]);
       relationship.setValidators([Validators.required]);
+      this.context.controls.personaInformante.setValue('');
     } else {
       age.setValue(14);
       age.setValidators([Validators.required, Validators.min(11), Validators.max(19)]);
       relationship.clearValidators();
       relationship.setValue('');
+      this.context.controls.personaInformante.setValue('ADOLESCENTE');
     }
     age.updateValueAndValidity();
     relationship.updateValueAndValidity();
