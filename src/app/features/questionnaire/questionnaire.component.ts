@@ -80,7 +80,16 @@ const blocks = [
 @Component({
   standalone: true,
   imports: [ReactiveFormsModule],
-  template: `@if (sent()) {
+  template: `@if (declined()) {
+      <section class="thanks declined-screen">
+        <div>✓</div>
+        <span class="eyebrow">DECISIÓN REGISTRADA EN ESTA SESIÓN</span>
+        <h1>El formulario ha finalizado.</h1>
+        <p>Respetamos tu decisión de no participar.</p>
+        <p>No se enviaron respuestas del instrumento IPBAM-20 al servidor.</p>
+        <small>Ya puedes cerrar esta ventana.</small>
+      </section>
+    } @else if (sent()) {
       <section class="thanks">
         <div>✓</div>
         <span class="eyebrow">RESPUESTAS RECIBIDAS</span>
@@ -100,44 +109,172 @@ const blocks = [
           <span>Sesión segura</span>
         </div>
         @if (step() === 0) {
-          <section class="intro">
-            <span class="eyebrow">ANTES DE COMENZAR</span>
-            <h1>Queremos saber cómo te has sentido</h1>
-            <p>
-              No hay respuestas buenas o malas. Responde pensando en tu experiencia real. Tus
-              respuestas son confidenciales, excepto cuando indiquen que tu vida o tus derechos
-              pueden estar en riesgo.
-            </p>
-            <form [formGroup]="meta">
-              <div class="form-grid">
-                <label>Código o identificador<input formControlName="codigoAdolescente" /></label
-                ><label>Edad<input type="number" formControlName="edad" /></label
-                ><label
-                  >Institución<select formControlName="institucionId" [attr.aria-busy]="institutionsLoading()">
-                    <option value="">{{ institutionsLoading() ? 'Cargando instituciones…' : 'Selecciona…' }}</option>
-                    @for (i of institutions(); track i.id) {
-                      <option [value]="i.id">{{ i.nombre }}</option>
-                    }
-                  </select></label
-                ><label
-                  >Lugar de aplicación<select formControlName="lugarAplicacion">
-                    <option value="INSTITUCION_EDUCATIVA">Institución educativa</option>
-                    <option value="CENTRO_SALUD">Centro de salud</option>
-                    <option value="COMUNIDAD">Comunidad</option>
-                    <option value="OTRO">Otro</option>
-                  </select></label
+          @if (!consentStage()) {
+            <section class="intro">
+              <span class="eyebrow">ANTES DE COMENZAR</span>
+              <h1>Queremos saber cómo te has sentido</h1>
+              <p>
+                No hay respuestas buenas o malas. Responde pensando en tu experiencia real. Tus
+                respuestas son confidenciales, excepto cuando indiquen que tu vida o tus derechos
+                pueden estar en riesgo.
+              </p>
+              <form [formGroup]="meta">
+                <div class="form-grid">
+                  <label>Código o identificador<input formControlName="codigoAdolescente" /></label
+                  ><label>Edad<input type="number" formControlName="edad" /></label
+                  ><label
+                    >Institución<select
+                      formControlName="institucionId"
+                      [attr.aria-busy]="institutionsLoading()"
+                    >
+                      <option value="">
+                        {{ institutionsLoading() ? 'Cargando instituciones…' : 'Selecciona…' }}
+                      </option>
+                      @for (i of institutions(); track i.id) {
+                        <option [value]="i.id">{{ i.nombre }}</option>
+                      }
+                    </select></label
+                  ><label
+                    >Lugar de aplicación<select formControlName="lugarAplicacion">
+                      <option value="INSTITUCION_EDUCATIVA">Institución educativa</option>
+                      <option value="CENTRO_SALUD">Centro de salud</option>
+                      <option value="COMUNIDAD">Comunidad</option>
+                      <option value="OTRO">Otro</option>
+                    </select></label
+                  >
+                </div>
+                @if (institutionsError()) {
+                  <div class="error" role="alert">
+                    {{ institutionsError() }}
+                    <button type="button" class="text-button" (click)="loadInstitutions()">
+                      Reintentar
+                    </button>
+                  </div>
+                } @else if (!institutionsLoading() && institutions().length === 0) {
+                  <div class="notice warning" role="status">
+                    <span
+                      ><b>No hay instituciones registradas.</b><br />Antes de aplicar el
+                      cuestionario, registra al menos una institución activa.</span
+                    ><a class="secondary button small" href="/administracion/instituciones"
+                      >Registrar institución</a
+                    >
+                  </div>
+                }
+                <button
+                  class="primary"
+                  type="button"
+                  [disabled]="meta.invalid"
+                  (click)="openConsent()"
                 >
-              </div>
-              @if (institutionsError()) {
-                <div class="error" role="alert">{{ institutionsError() }} <button type="button" class="text-button" (click)="loadInstitutions()">Reintentar</button></div>
-              } @else if (!institutionsLoading() && institutions().length === 0) {
-                <div class="notice warning" role="status"><span><b>No hay instituciones registradas.</b><br>Antes de aplicar el cuestionario, registra al menos una institución activa.</span><a class="secondary button small" href="/administracion/instituciones">Registrar institución</a></div>
-              }
-              <button class="primary" type="button" [disabled]="meta.invalid" (click)="step.set(1)">
-                Comenzar <span>→</span>
+                  Continuar al consentimiento <span>→</span>
+                </button>
+              </form>
+            </section>
+          } @else {
+            <section class="intro consent-card">
+              <button
+                class="text-button back-consent"
+                type="button"
+                (click)="consentStage.set(false)"
+              >
+                ← Volver a los datos iniciales
               </button>
-            </form>
-          </section>
+              <span class="eyebrow">CONSENTIMIENTO Y ASENTIMIENTO</span>
+              <h1>Tu participación es voluntaria</h1>
+              <div class="consent-summary">
+                <p>
+                  La Secretaría de Salud de Manizales realiza un seguimiento del bienestar
+                  adolescente para identificar necesidades de apoyo y orientar oportunamente las
+                  rutas de atención.
+                </p>
+                <p>
+                  Responder toma aproximadamente 5 a 7 minutos. Este formulario no realiza
+                  diagnósticos. La información será tratada de forma confidencial y se utilizará
+                  para seguimiento en salud y análisis poblacionales autorizados.
+                </p>
+                <p>
+                  Si alguna respuesta indica una posible situación que pueda poner en riesgo tu
+                  seguridad, vida o derechos, el equipo responsable podrá buscar apoyo y activar las
+                  rutas de salud o protección correspondientes.
+                </p>
+              </div>
+
+              <form [formGroup]="consent">
+                @if (isMinor()) {
+                  <fieldset class="consent-fieldset">
+                    <legend>Autorización del padre, madre o cuidador</legend>
+                    <p>
+                      Al seleccionar “Sí, acepto”, la persona adulta confirma que ha leído y
+                      comprendido esta información y autoriza la participación del adolescente y el
+                      tratamiento de la información para los fines descritos.
+                    </p>
+                    <label class="consent-option"
+                      ><input type="radio" formControlName="caregiver" value="YES" />
+                      <span
+                        ><b>Sí, acepto</b
+                        ><small
+                          >Autorizo la participación y el uso de la información para estos
+                          fines.</small
+                        ></span
+                      ></label
+                    >
+                    <label class="consent-option"
+                      ><input type="radio" formControlName="caregiver" value="NO" />
+                      <span
+                        ><b>No acepto</b
+                        ><small
+                          >El instrumento finalizará sin enviar respuestas clínicas.</small
+                        ></span
+                      ></label
+                    >
+                  </fieldset>
+                }
+
+                <fieldset class="consent-fieldset">
+                  <legend>
+                    {{
+                      isMinor()
+                        ? 'Asentimiento del adolescente'
+                        : 'Consentimiento de la persona participante'
+                    }}
+                  </legend>
+                  <p>
+                    Queremos hacerte unas preguntas para conocer cómo te has sentido. No hay
+                    respuestas buenas o malas. Participar es tu decisión. Tus respuestas no serán
+                    compartidas de manera general con compañeros, docentes u otras familias.
+                  </p>
+                  <label class="consent-option"
+                    ><input type="radio" formControlName="adolescent" value="YES" />
+                    <span
+                      ><b>Sí, quiero participar</b
+                      ><small>He comprendido la información y deseo continuar.</small></span
+                    ></label
+                  >
+                  <label class="consent-option"
+                    ><input type="radio" formControlName="adolescent" value="NO" />
+                    <span
+                      ><b>No quiero participar</b
+                      ><small
+                        >El instrumento finalizará sin enviar respuestas clínicas.</small
+                      ></span
+                    ></label
+                  >
+                </fieldset>
+
+                <div class="q-actions consent-actions">
+                  <button class="secondary" type="button" (click)="decline()">No participar</button>
+                  <button
+                    class="primary"
+                    type="button"
+                    [disabled]="!canConsent()"
+                    (click)="acceptConsent()"
+                  >
+                    Aceptar y comenzar →
+                  </button>
+                </div>
+              </form>
+            </section>
+          }
         } @else {
           <div class="progress">
             <span>Paso {{ step() }} de 6</span>
@@ -191,6 +328,8 @@ export class QuestionnaireComponent {
   private fb = inject(FormBuilder);
   private apps = inject(ApplicationsService);
   step = signal(0);
+  consentStage = signal(false);
+  declined = signal(false);
   answers = signal<Record<number, number>>({});
   institutions = signal<Institution[]>([]);
   institutionsLoading = signal(true);
@@ -205,18 +344,57 @@ export class QuestionnaireComponent {
     institucionId: ['', Validators.required],
     lugarAplicacion: ['INSTITUCION_EDUCATIVA', Validators.required],
   });
+  consent = this.fb.nonNullable.group({ caregiver: [''], adolescent: ['', Validators.required] });
   private institutionsApi = inject(InstitutionsService);
-  constructor() { this.loadInstitutions(); }
+  constructor() {
+    this.loadInstitutions();
+  }
   loadInstitutions() {
     this.institutionsLoading.set(true);
     this.institutionsError.set('');
     this.institutionsApi.list().subscribe({
-      next: (r) => { this.institutions.set(r.institutions.filter((i) => i.activa)); this.institutionsLoading.set(false); },
-      error: (e: HttpErrorResponse) => { this.institutionsLoading.set(false); this.institutionsError.set(e.status === 403 ? 'Tu usuario no tiene permiso para consultar instituciones.' : 'No fue posible cargar las instituciones.'); }
+      next: (r) => {
+        this.institutions.set(r.institutions.filter((i) => i.activa));
+        this.institutionsLoading.set(false);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.institutionsLoading.set(false);
+        this.institutionsError.set(
+          e.status === 403
+            ? 'Tu usuario no tiene permiso para consultar instituciones.'
+            : 'No fue posible cargar las instituciones.',
+        );
+      },
     });
   }
   block() {
     return blocks[this.step() - 1];
+  }
+  isMinor() {
+    return this.meta.controls.edad.value < 18;
+  }
+  openConsent() {
+    if (this.meta.invalid) {
+      this.meta.markAllAsTouched();
+      return;
+    }
+    this.consent.reset({ caregiver: '', adolescent: '' });
+    this.consentStage.set(true);
+    scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  canConsent() {
+    const value = this.consent.getRawValue();
+    return value.adolescent === 'YES' && (!this.isMinor() || value.caregiver === 'YES');
+  }
+  acceptConsent() {
+    if (!this.canConsent()) return;
+    this.started = new Date().toISOString();
+    this.step.set(1);
+    scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  decline() {
+    this.answers.set({});
+    this.declined.set(true);
   }
   questions(): Q[] {
     return this.block().qs.map(([n, text]) => ({ n, text }));

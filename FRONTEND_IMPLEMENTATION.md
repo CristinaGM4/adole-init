@@ -49,7 +49,7 @@ Se usan exactamente `ADMIN`, `SECRETARIA_SALUD`, `RESPONSABLE_INSTITUCIONAL` y `
 
 ## Cuestionario y privacidad
 
-Las 20 preguntas son literales del anexo. P1–P6 permiten 0–3 y P7–P20 permiten 0–4. P5/P6 son obligatorias en su paso; no se calcula gravedad clínica. El payload incluye código, edad, institución, lugar, versión, inicio y respuestas. Tras el envío solo se muestra una confirmación neutral, nunca resultado técnico.
+Antes de cualquier pregunta clínica se presenta consentimiento informado y asentimiento. Para menores de 18 años se exige tanto autorización de padre/madre/cuidador como asentimiento del adolescente; para participantes de 18 o 19 años se exige consentimiento propio. Si se rechaza, el flujo finaliza y no ejecuta `POST /aplicaciones`. Las 20 preguntas son literales del anexo. P1–P6 permiten 0–3 y P7–P20 permiten 0–4. P5/P6 son obligatorias en su paso; no se calcula gravedad clínica. El payload incluye código, edad, institución, lugar, versión, inicio y respuestas. Tras el envío solo se muestra una confirmación neutral, nunca resultado técnico.
 
 ## Decisiones de interfaz
 
@@ -63,14 +63,15 @@ Paleta verde institucional, fondo claro, sidebar sobrio, tarjetas y tablas con p
 4. El rol ADOLESCENTE descrito funcionalmente no existe en el enum de autenticación. Por tanto, el backend exige que ADMIN o RESPONSABLE_INSTITUCIONAL envíen aplicaciones; no se inventó un acceso público adolescente.
 5. No hay endpoint contractual para preguntar “acciones permitidas” por recurso. La UI limita por rol/estado conocido y el backend mantiene la autorización definitiva.
 6. El contrato no incluye eliminación de usuarios, instituciones o servicios. La administración permite crear, actualizar y activar/desactivar usando únicamente `POST` y `PATCH`; no se simuló borrado.
+7. OpenAPI no define un endpoint ni campos en `ApplicationInput` para persistir la decisión de consentimiento/asentimiento o registrar un rechazo. El frontend aplica la barrera obligatoria en la sesión y garantiza que un rechazo no envíe respuestas clínicas, pero no simula una constancia persistente. El backend deberá ampliar el contrato si la política institucional exige conservar esa evidencia.
 
 ## Conexión
 
-El desarrollo usa `/api` y `proxy.conf.json`, que redirige a `https://inst-adolescente.onrender.com`. Producción usa `environment.production.ts` con la URL pública directa. El origen definitivo del frontend debe agregarse a `CORS_ORIGINS` del backend. Después ejecute `npm install`, `npm start`; para entrega, `npm run build` y `npm test -- --watch=false`.
+El desarrollo usa `/api` y `proxy.conf.json`, que redirige a `https://inst-adolescente.onrender.com`. En Vercel, `environment.production.ts` conserva `/api` y `vercel.json` realiza el rewrite hacia Render para evitar dependencia de CORS entre navegadores. Después ejecute `npm install`, `npm start`; para entrega, `npm run build` y `npm test -- --watch=false`.
 
 ## Validación de entrega
 
 - Dependencias instaladas: 482 paquetes, 0 vulnerabilidades reportadas.
 - TypeScript de aplicación y pruebas: sin errores.
-- Pruebas Angular/Vitest: 5 archivos, 14 pruebas aprobadas. Incluyen login, guards, JWT, 401, 403, 409, 422, IPBAM-20 y compilación de todas las rutas/componentes.
+- Pruebas Angular/Vitest: 5 archivos, 16 pruebas aprobadas. Incluyen login, guards, JWT, 401, 403, 409, 422, IPBAM-20, consentimiento/asentimiento y compilación de todas las rutas/componentes.
 - El build de producción fue ejecutado con Node 24, 25 y 22. En este equipo, el binario nativo de `esbuild` terminó con `exit 134` y un deadlock interno después de la compilación, sin emitir un diagnóstico Angular. El mismo compilador completó el bundle integral de pruebas correctamente. Se recomienda repetir `npm run build` en Node 22 LTS sobre un entorno limpio; no se ocultó ni convirtió este fallo de infraestructura en un resultado exitoso.
